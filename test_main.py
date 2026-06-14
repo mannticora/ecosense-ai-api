@@ -51,3 +51,27 @@ def test_sentiment_with_valid_key_succeeds(mock_analyze):
 
     assert response.status_code == 200
     assert response.json()["sentiment"] == "positive"
+
+@patch("main.openai_client.chat.completions.create")
+@patch("main.requests.get")
+def test_live_air_quality_endpoint(mock_get, mock_openai):
+    # Simula respuesta de la CDMX Air Quality API
+    mock_get.return_value.json.return_value = [{
+        "id": 1, "station": "TEST", "zone": "Norte",
+        "pollutant": "pm25", "value": 50.0, "unit": "µg/m³",
+        "timestamp": "2026-01-01T00:00:00"
+    }]
+
+    # Simula respuesta de Azure OpenAI
+    mock_message = type("MockMessage", (), {"content": "Análisis de prueba"})()
+    mock_choice = type("MockChoice", (), {"message": mock_message})()
+    mock_openai.return_value = type("MockResponse", (), {"choices": [mock_choice]})()
+
+    response = client.get(
+        "/analyze/live-air-quality/pm25",
+        headers={"X-API-Key": VALID_KEY}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["zone"] == "Norte"
+    assert response.json()["ai_analysis"] == "Análisis de prueba"

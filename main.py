@@ -32,6 +32,7 @@ OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
 
 API_KEY = os.getenv("ECOSENSE_API_KEY")
 api_key_header = APIKeyHeader(name="X-API-Key")
+CDMX_API_URL = os.getenv("CDMX_API_URL")
 
 
 def verify_api_key(key: str = Security(api_key_header)):
@@ -140,6 +141,21 @@ def get_environmental_analysis(pollutant: str, value: float, unit: str) -> str:
 
     return response.choices[0].message.content
 
+def get_latest_measurement(pollutant: str) -> dict:
+    url = f"{CDMX_API_URL}/measurements/"
+    params = {"pollutant": pollutant, "limit": 1}
+
+    response = requests.get(url, params=params, timeout=10)
+    data = response.json()
+
+    if not data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No hay datos disponibles para el contaminante '{pollutant}'"
+        )
+
+    return data[0]
+
 # ---------- Modelos de entrada ----------
 
 class TextInput(BaseModel):
@@ -200,5 +216,25 @@ def analyze_environmental(input: EnvironmentalInput):
         "pollutant": input.pollutant,
         "value": input.value,
         "unit": input.unit,
+        "ai_analysis": analysis
+    }
+
+@app.get("/analyze/live-air-quality/{pollutant}", dependencies=[Depends(verify_api_key)])
+def analyze_live_air_quality(pollutant: str):
+    measurement = get_latest_measurement(pollutant)
+
+    analysis = get_environmental_analysis(
+        measurement["pollutant"],
+        measurement["value"],
+        measurement["unit"]
+    )
+
+    return {
+        "station": measurement["station"],
+        "zone": measurement["zone"],
+        "pollutant": measurement["pollutant"],
+        "value": measurement["value"],
+        "unit": measurement["unit"],
+        "timestamp": measurement["timestamp"],
         "ai_analysis": analysis
     }

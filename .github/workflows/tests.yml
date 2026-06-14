@@ -37,4 +37,5 @@ jobs:
           AZURE_OPENAI_DEPLOYMENT: gpt-5-mini
           AZURE_OPENAI_API_VERSION: 2024-12-01-preview
           ECOSENSE_API_KEY: ecosense_dev_key_2026_cdmx_aire
-        run: pytest -v
+          run: pytest -v
+          CDMX_API_URL: https://dummy-api.example.com
