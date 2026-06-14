@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from azure.ai.textanalytics import TextAnalyticsClient
 from azure.core.credentials import AzureKeyCredential
+from fastapi import HTTPException
 
 load_dotenv()
 
@@ -15,6 +16,9 @@ LANGUAGE_ENDPOINT = os.getenv("AZURE_LANGUAGE_ENDPOINT")
 TRANSLATOR_KEY = os.getenv("AZURE_TRANSLATOR_KEY")
 TRANSLATOR_ENDPOINT = os.getenv("AZURE_TRANSLATOR_ENDPOINT")
 TRANSLATOR_REGION = os.getenv("AZURE_TRANSLATOR_REGION")
+
+VISION_KEY = os.getenv("AZURE_VISION_KEY")
+VISION_ENDPOINT = os.getenv("AZURE_VISION_ENDPOINT")
 
 client = TextAnalyticsClient(
     endpoint=LANGUAGE_ENDPOINT,
@@ -37,6 +41,31 @@ def get_sentiment(text: str) -> dict:
         }
     }
 
+def analyze_image(image_url: str) -> dict:
+    path = "vision/v3.2/analyze"
+    constructed_url = VISION_ENDPOINT + path
+
+    params = {"visualFeatures": "Description,Tags"}
+    headers = {
+        "Ocp-Apim-Subscription-Key": VISION_KEY,
+        "Content-Type": "application/json"
+    }
+    body = {"url": image_url}
+
+    response = requests.post(constructed_url, params=params, headers=headers, json=body)
+    result = response.json()
+
+    if "error" in result:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Error de Azure Vision: {result['error']['message']}"
+        )
+
+    return {
+        "caption": result["description"]["captions"][0]["text"],
+        "caption_confidence": result["description"]["captions"][0]["confidence"],
+        "tags": [tag["name"] for tag in result["tags"][:10]]
+    }
 
 def translate_to_spanish(text: str) -> dict:
     path = "/translate"
@@ -89,3 +118,11 @@ def analyze_report(input: TextInput):
         **translate_to_spanish(input.text),
         **get_sentiment(input.text)
     }
+
+class ImageInput(BaseModel):
+    image_url: str
+
+
+@app.post("/analyze/image")
+def analyze_image_endpoint(input: ImageInput):
+    return analyze_image(input.image_url)
