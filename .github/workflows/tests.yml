@@ -24,4 +24,17 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run tests
+        env:
+          AZURE_LANGUAGE_KEY: dummy_key
+          AZURE_LANGUAGE_ENDPOINT: https://dummy.cognitiveservices.azure.com/
+          AZURE_TRANSLATOR_KEY: dummy_key
+          AZURE_TRANSLATOR_ENDPOINT: https://api.cognitive.microsofttranslator.com
+          AZURE_TRANSLATOR_REGION: southcentralus
+          AZURE_VISION_KEY: dummy_key
+          AZURE_VISION_ENDPOINT: https://dummy.cognitiveservices.azure.com/
+          AZURE_OPENAI_KEY: dummy_key
+          AZURE_OPENAI_ENDPOINT: https://dummy.openai.azure.com/
+          AZURE_OPENAI_DEPLOYMENT: gpt-5-mini
+          AZURE_OPENAI_API_VERSION: 2024-12-01-preview
+          ECOSENSE_API_KEY: ecosense_dev_key_2026_cdmx_aire
         run: pytest -v
