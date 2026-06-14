@@ -1,3 +1,6 @@
+from fastapi import Depends
+from fastapi import Security, HTTPException, status
+from fastapi.security import APIKeyHeader
 import os
 import uuid
 import requests
@@ -26,6 +29,18 @@ OPENAI_KEY = os.getenv("AZURE_OPENAI_KEY")
 OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
+
+API_KEY = os.getenv("ECOSENSE_API_KEY")
+api_key_header = APIKeyHeader(name="X-API-Key")
+
+
+def verify_api_key(key: str = Security(api_key_header)):
+    if key != API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="API Key inválida o faltante"
+        )
+    return key
 
 openai_client = AzureOpenAI(
     api_key=OPENAI_KEY,
@@ -138,12 +153,12 @@ def root():
     return {"message": "EcoSense AI API funcionando 🌱"}
 
 
-@app.post("/analyze/sentiment")
+@app.post("/analyze/sentiment", dependencies=[Depends(verify_api_key)])
 def analyze_sentiment(input: TextInput):
     return {"text": input.text, **get_sentiment(input.text)}
 
 
-@app.post("/translate")
+@app.post("/translate", dependencies=[Depends(verify_api_key)])
 def translate_text(input: TextInput):
     return {"original_text": input.text, **translate_to_spanish(input.text)}
 
@@ -152,7 +167,7 @@ class ReportInput(BaseModel):
     image_url: Optional[str] = None
 
 
-@app.post("/report/analyze")
+@app.post("/report/analyze", dependencies=[Depends(verify_api_key)])
 def analyze_report(input: ReportInput):
     result = {
         "original_text": input.text,
@@ -169,7 +184,7 @@ class ImageInput(BaseModel):
     image_url: str
 
 
-@app.post("/analyze/image")
+@app.post("/analyze/image", dependencies=[Depends(verify_api_key)])
 def analyze_image_endpoint(input: ImageInput):
     return analyze_image(input.image_url)
 
@@ -178,7 +193,7 @@ class EnvironmentalInput(BaseModel):
     value: float
     unit: str
 
-@app.post("/analyze/environmental")
+@app.post("/analyze/environmental", dependencies=[Depends(verify_api_key)])
 def analyze_environmental(input: EnvironmentalInput):
     analysis = get_environmental_analysis(input.pollutant, input.value, input.unit)
     return {
