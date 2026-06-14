@@ -1,25 +1,35 @@
 # 🌱 EcoSense AI API
 
-API REST que demuestra integración práctica de **4 servicios de Azure AI**
-para análisis de calidad del aire y reportes ciudadanos en CDMX, alineada
-con los conceptos certificados en **Azure AI-900 (AI Fundamentals)**.
+API REST que integra 4 servicios de Azure AI para procesar reportes
+ciudadanos y datos en tiempo real de calidad del aire en la Ciudad de
+México, generando análisis de sentimiento, traducción automática,
+análisis de imágenes y recomendaciones de salud mediante IA generativa.
+
+Conectada como microservicio independiente con [CDMX Air Quality API](https://github.com/mannticora/cdmx-air-quality-api),
+formando un pipeline completo: datos reales de estaciones de monitoreo →
+procesamiento con IA → recomendaciones accionables.
 
 ## 🚀 Demo en vivo
 
 - **API:** https://ecosense-api.yellowbay-011c71f1.southcentralus.azurecontainerapps.io/
 - **Documentación interactiva (Swagger):** [/docs](https://ecosense-api.yellowbay-011c71f1.southcentralus.azurecontainerapps.io/docs)
 
-## 🧠 Servicios de Azure AI integrados
+## 🧠 Servicios integrados
 
-| Servicio | Endpoint | Concepto AI-900 |
+| Servicio | Endpoint | Función |
 |---|---|---|
-| Azure AI Language | `POST /analyze/sentiment` | NLP, análisis de sentimiento |
-| Azure AI Translator | `POST /translate` | Traducción, detección de idioma |
-| Azure AI Vision | `POST /analyze/image` | Visión por computadora, multimodal |
-| Azure OpenAI (gpt-5-mini) | `POST /analyze/environmental` | IA generativa, prompt engineering |
-| Orquestador multimodal | `POST /report/analyze` | Combina texto + imagen + traducción |
+| Azure AI Language | `POST /analyze/sentiment` | Análisis de sentimiento con score de confianza |
+| Azure AI Translator | `POST /translate` | Traducción y detección automática de idioma |
+| Azure AI Vision | `POST /analyze/image` | Descripción y etiquetado de imágenes |
+| Azure OpenAI (gpt-5-mini) | `POST /analyze/environmental` | Explicaciones y recomendaciones de salud generadas por IA |
+| Orquestador multimodal | `POST /report/analyze` | Combina texto, traducción, sentimiento e imagen en un solo análisis |
+| Integración CDMX API | `GET /analyze/live-air-quality/{pollutant}` | Consume datos reales de monitoreo y los procesa con IA |
 
 ## 🏗️ Arquitectura
+
+CDMX Air Quality API (Railway) ──┐
+
+↓
 
 Cliente → FastAPI (Docker) → Azure Container Apps
 
@@ -27,9 +37,26 @@ Cliente → FastAPI (Docker) → Azure Container Apps
 
 Azure AI Language / Translator / Vision / OpenAI
 
+Dos servicios independientes que se comunican vía HTTP — cada uno con
+su propio ciclo de despliegue, manejo de errores y timeouts.
+
+## 🎯 Decisiones de arquitectura
+
+- **Microservicios independientes:** EcoSense y CDMX Air Quality API
+  se comunican vía HTTP, con aislamiento de fallos (timeouts en
+  llamadas externas).
+- **Selección de modelo por costo/latencia:** servicios especializados
+  (Language, Translator, Vision) para tareas bien definidas; Azure
+  OpenAI reservado para razonamiento abierto.
+- **Seguridad por diseño:** autenticación por API key, secretos nunca
+  en el repositorio, variables de entorno gestionadas por la plataforma
+  de despliegue.
+- **Pipeline reproducible:** Docker + Azure Container Registry + Azure
+  Container Apps, con tests automatizados en cada push vía GitHub Actions.
+
 ## 🔐 Autenticación
 
-Todos los endpoints (excepto `/`) requieren header `X-API-Key`.
+Todos los endpoints (excepto `/`) requieren el header `X-API-Key`.
 
 ## 🛠️ Stack técnico
 
@@ -42,31 +69,25 @@ Todos los endpoints (excepto `/`) requieren header `X-API-Key`.
 
 ## ⚙️ Correr localmente
 
-\`\`\`bash
+```bash
 git clone https://github.com/mannticora/ecosense-ai-api
 cd ecosense-ai-api
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-# Configura tu .env con tus propias credenciales de Azure (ver .env.example)
+# Configura .env con tus credenciales (ver .env.example)
 uvicorn main:app --reload
-\`\`\`
+```
 
 ## 🧪 Tests
 
-\`\`\`bash
+```bash
 pytest -v
-\`\`\`
+```
 
-## 🗺️ Roadmap futuro
+## 🗺️ Roadmap
 
-- Dashboard frontend (React) con visualización geográfica de reportes
+- Dashboard frontend con visualización geográfica de reportes y métricas en tiempo real
 - Migración a Azure AI Foundry Agents para orquestación avanzada
-- CD automático: despliegue continuo a Azure Container Apps vía GitHub Actions
-- Autenticación JWT con roles (ciudadano vs administrador)
-
-## 📜 Sobre este proyecto
-
-Desarrollado como proyecto práctico complementario a la certificación
-**Microsoft Azure AI-900 (AI Fundamentals)**, aplicando cada servicio
-estudiado en un caso de uso real para la Ciudad de México.
+- Despliegue continuo (CD) a Azure Container Apps vía GitHub Actions
+- Autenticación basada en roles (JWT)
