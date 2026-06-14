@@ -7,6 +7,8 @@ from pydantic import BaseModel
 from azure.ai.textanalytics import TextAnalyticsClient
 from azure.core.credentials import AzureKeyCredential
 from fastapi import HTTPException
+from typing import Optional
+from openai import AzureOpenAI
 
 load_dotenv()
 
@@ -19,6 +21,17 @@ TRANSLATOR_REGION = os.getenv("AZURE_TRANSLATOR_REGION")
 
 VISION_KEY = os.getenv("AZURE_VISION_KEY")
 VISION_ENDPOINT = os.getenv("AZURE_VISION_ENDPOINT")
+
+OPENAI_KEY = os.getenv("AZURE_OPENAI_KEY")
+OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
+OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
+OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
+
+openai_client = AzureOpenAI(
+    api_key=OPENAI_KEY,
+    azure_endpoint=OPENAI_ENDPOINT,
+    api_version=OPENAI_API_VERSION
+)
 
 client = TextAnalyticsClient(
     endpoint=LANGUAGE_ENDPOINT,
@@ -87,6 +100,30 @@ def translate_to_spanish(text: str) -> dict:
         "translated_text": result["translations"][0]["text"]
     }
 
+def get_environmental_analysis(pollutant: str, value: float, unit: str) -> str:
+    system_prompt = (
+        "Eres un asistente experto en calidad del aire para la Ciudad de México. "
+        "Explicas datos de contaminantes de forma clara para ciudadanos sin "
+        "conocimiento técnico, y das recomendaciones prácticas de salud. "
+        "Sé conciso: máximo 3 oraciones."
+    )
+
+    user_prompt = (
+        f"El nivel de {pollutant} es {value} {unit}. "
+        f"¿Qué significa esto y qué recomendación le darías a alguien en CDMX?"
+    )
+
+    response = openai_client.chat.completions.create(
+        model=OPENAI_DEPLOYMENT,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        max_completion_tokens=600,
+        reasoning_effort="low"
+    )
+
+    return response.choices[0].message.content
 
 # ---------- Modelos de entrada ----------
 
@@ -110,14 +147,23 @@ def analyze_sentiment(input: TextInput):
 def translate_text(input: TextInput):
     return {"original_text": input.text, **translate_to_spanish(input.text)}
 
+class ReportInput(BaseModel):
+    text: str
+    image_url: Optional[str] = None
+
 
 @app.post("/report/analyze")
-def analyze_report(input: TextInput):
-    return {
+def analyze_report(input: ReportInput):
+    result = {
         "original_text": input.text,
         **translate_to_spanish(input.text),
         **get_sentiment(input.text)
     }
+
+    if input.image_url:
+        result["image_analysis"] = analyze_image(input.image_url)
+
+    return result
 
 class ImageInput(BaseModel):
     image_url: str
@@ -126,3 +172,18 @@ class ImageInput(BaseModel):
 @app.post("/analyze/image")
 def analyze_image_endpoint(input: ImageInput):
     return analyze_image(input.image_url)
+
+class EnvironmentalInput(BaseModel):
+    pollutant: str
+    value: float
+    unit: str
+
+@app.post("/analyze/environmental")
+def analyze_environmental(input: EnvironmentalInput):
+    analysis = get_environmental_analysis(input.pollutant, input.value, input.unit)
+    return {
+        "pollutant": input.pollutant,
+        "value": input.value,
+        "unit": input.unit,
+        "ai_analysis": analysis
+    }
