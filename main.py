@@ -12,6 +12,8 @@ from azure.core.credentials import AzureKeyCredential
 from fastapi import HTTPException
 from typing import Optional
 from openai import AzureOpenAI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 load_dotenv()
 
@@ -238,3 +240,9 @@ def analyze_live_air_quality(pollutant: str):
         "timestamp": measurement["timestamp"],
         "ai_analysis": analysis
     }
+
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+@app.get("/dashboard")
+def dashboard():
+    return FileResponse("frontend/index.html")
