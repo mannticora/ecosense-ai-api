@@ -57,7 +57,11 @@ client = TextAnalyticsClient(
 )
 
 app = FastAPI(title="EcoSense AI API")
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
+@app.get("/dashboard")
+def dashboard():
+    return FileResponse("frontend/index.html")
 
 # ---------- Funciones reutilizables ----------
 
@@ -240,9 +244,3 @@ def analyze_live_air_quality(pollutant: str):
         "timestamp": measurement["timestamp"],
         "ai_analysis": analysis
     }
-
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
-
-@app.get("/dashboard")
-def dashboard():
-    return FileResponse("frontend/index.html")
