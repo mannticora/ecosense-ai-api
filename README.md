@@ -7,23 +7,27 @@ análisis de imágenes y recomendaciones de salud mediante IA generativa.
 
 Conectada como microservicio independiente con [CDMX Air Quality API](https://github.com/mannticora/cdmx-air-quality-api),
 formando un pipeline completo: datos reales de estaciones de monitoreo →
-procesamiento con IA → recomendaciones accionables.
+procesamiento con IA → recomendaciones accionables para ciudadanos.
 
 ## 🚀 Demo en vivo
 
-- **API:** https://ecosense-api.yellowbay-011c71f1.southcentralus.azurecontainerapps.io/
-- **Documentación interactiva (Swagger):** [/docs](https://ecosense-api.yellowbay-011c71f1.southcentralus.azurecontainerapps.io/docs)
+| Recurso | URL |
+|---|---|
+| Dashboard interactivo | [/dashboard](https://ecosense-api.yellowbay-011c71f1.southcentralus.azurecontainerapps.io/dashboard) |
+| Documentación API (Swagger) | [/docs](https://ecosense-api.yellowbay-011c71f1.southcentralus.azurecontainerapps.io/docs) |
+| API base | https://ecosense-api.yellowbay-011c71f1.southcentralus.azurecontainerapps.io |
 
-## 🧠 Servicios integrados
+## 🧠 Servicios Azure AI integrados
 
 | Servicio | Endpoint | Función |
 |---|---|---|
 | Azure AI Language | `POST /analyze/sentiment` | Análisis de sentimiento con score de confianza |
 | Azure AI Translator | `POST /translate` | Traducción y detección automática de idioma |
-| Azure AI Vision | `POST /analyze/image` | Descripción y etiquetado de imágenes |
-| Azure OpenAI (gpt-5-mini) | `POST /analyze/environmental` | Explicaciones y recomendaciones de salud generadas por IA |
-| Orquestador multimodal | `POST /report/analyze` | Combina texto, traducción, sentimiento e imagen en un solo análisis |
-| Integración CDMX API | `GET /analyze/live-air-quality/{pollutant}` | Consume datos reales de monitoreo y los procesa con IA |
+| Azure Computer Vision | `POST /analyze/image` | Descripción y etiquetado de imágenes |
+| Azure OpenAI (gpt-5-mini) | `POST /analyze/environmental` | Explicaciones y recomendaciones de salud |
+| Orquestador multimodal | `POST /report/analyze` | Combina texto, traducción, sentimiento e imagen |
+| Integración CDMX API | `GET /analyze/live-air-quality/{pollutant}` | Datos reales de monitoreo + análisis IA |
+| Dashboard | `GET /dashboard` | Frontend interactivo dark mode |
 
 ## 🏗️ Arquitectura
 
@@ -35,36 +39,43 @@ Cliente → FastAPI (Docker) → Azure Container Apps
 
 ↓
 
-Azure AI Language / Translator / Vision / OpenAI
+Azure AI Language / Translator / Vision / OpenAI (gpt-5-mini)
 
-Dos servicios independientes que se comunican vía HTTP — cada uno con
+↓
+
+Dashboard interactivo (/dashboard)
+
+Dos servicios independientes comunicándose vía HTTP — cada uno con
 su propio ciclo de despliegue, manejo de errores y timeouts.
 
 ## 🎯 Decisiones de arquitectura
 
 - **Microservicios independientes:** EcoSense y CDMX Air Quality API
   se comunican vía HTTP, con aislamiento de fallos (timeouts en
-  llamadas externas).
+  llamadas externas para evitar cascada de fallos).
 - **Selección de modelo por costo/latencia:** servicios especializados
   (Language, Translator, Vision) para tareas bien definidas; Azure
-  OpenAI reservado para razonamiento abierto.
+  OpenAI reservado para razonamiento abierto donde se justifica el costo.
 - **Seguridad por diseño:** autenticación por API key, secretos nunca
-  en el repositorio, variables de entorno gestionadas por la plataforma
-  de despliegue.
+  en el repositorio, variables de entorno gestionadas por Azure Container Apps.
 - **Pipeline reproducible:** Docker + Azure Container Registry + Azure
-  Container Apps, con tests automatizados en cada push vía GitHub Actions.
+  Container Apps, con versionado explícito de imágenes (no `:latest` en producción).
+- **Tests con mocks:** pytest simula servicios externos para mantener
+  el CI/CD rápido, gratuito y determinístico.
 
 ## 🔐 Autenticación
 
-Todos los endpoints (excepto `/`) requieren el header `X-API-Key`.
+Todos los endpoints (excepto `/` y `/dashboard`) requieren el header:
+
+X-API-Key: <tu_api_key>
 
 ## 🛠️ Stack técnico
 
-- **Backend:** Python, FastAPI
+- **Backend:** Python 3.12, FastAPI
 - **IA:** Azure AI Language, Translator, Computer Vision, Azure OpenAI
-- **Containerización:** Docker
-- **Cloud:** Azure Container Apps + Azure Container Registry
-- **CI/CD:** GitHub Actions (tests automatizados en cada push)
+- **Containerización:** Docker + Azure Container Registry
+- **Cloud:** Azure Container Apps (South Central US)
+- **CI/CD:** GitHub Actions — tests automáticos en cada push
 - **Testing:** pytest con mocks de servicios externos
 
 ## ⚙️ Correr localmente
@@ -75,9 +86,11 @@ cd ecosense-ai-api
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-# Configura .env con tus credenciales (ver .env.example)
+cp .env.example .env  # Completa con tus credenciales de Azure
 uvicorn main:app --reload
 ```
+
+Abre `http://127.0.0.1:8000/dashboard` para el dashboard local.
 
 ## 🧪 Tests
 
@@ -87,7 +100,8 @@ pytest -v
 
 ## 🗺️ Roadmap
 
-- Dashboard frontend con visualización geográfica de reportes y métricas en tiempo real
+- Despliegue continuo (CD) automático a Azure Container Apps vía GitHub Actions
+- Autenticación basada en roles con JWT
 - Migración a Azure AI Foundry Agents para orquestación avanzada
-- Despliegue continuo (CD) a Azure Container Apps vía GitHub Actions
-- Autenticación basada en roles (JWT)
+- Visualización geográfica de reportes por zona de CDMX
+- Alertas automáticas cuando los niveles de contaminantes superan límites OMS
