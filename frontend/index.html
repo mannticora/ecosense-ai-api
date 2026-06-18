@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EcoSense AI — Calidad del Aire CDMX</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0d1117; color: #e6edf3; min-height: 100vh; }
+.dash { max-width: 720px; margin: 0 auto; padding: 1.5rem; }
+.header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 0.5px solid #21262d; }
+.header-icon { width: 40px; height: 40px; background: #1d6fa5; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.header h1 { font-size: 20px; font-weight: 500; color: #e6edf3; }
+.header p { font-size: 13px; color: #8b949e; margin-top: 2px; }
+.tabs { display: flex; gap: 4px; margin-bottom: 1.5rem; background: #161b22; border-radius: 10px; padding: 4px; }
+.tab { flex: 1; padding: 8px 6px; border: none; background: transparent; color: #8b949e; font-size: 13px; border-radius: 7px; cursor: pointer; transition: all 0.15s; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 5px; }
+.tab.active { background: #1d6fa5; color: #fff; }
+.tab:hover:not(.active) { background: #21262d; color: #c9d1d9; }
+.panel { display: none; }
+.panel.active { display: block; }
+.card { background: #161b22; border: 0.5px solid #21262d; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+.card-title { font-size: 13px; color: #8b949e; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+.input-group { margin-bottom: 12px; }
+.input-group label { font-size: 12px; color: #8b949e; display: block; margin-bottom: 5px; }
+.input-group input, .input-group textarea, .input-group select { width: 100%; background: #0d1117; border: 0.5px solid #30363d; border-radius: 6px; color: #e6edf3; padding: 9px 11px; font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.15s; }
+.input-group textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
+.input-group input:focus, .input-group textarea:focus, .input-group select:focus { border-color: #1d6fa5; }
+.btn { width: 100%; padding: 10px; background: #1d6fa5; border: none; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; transition: background 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.btn:hover { background: #2181bd; }
+.btn:disabled { background: #21262d; color: #484f58; cursor: not-allowed; }
+.btn-secondary { background: #21262d; color: #c9d1d9; }
+.btn-secondary:hover { background: #30363d; }
+.result { margin-top: 1rem; background: #0d1117; border: 0.5px solid #21262d; border-radius: 8px; padding: 1rem; display: none; }
+.result.show { display: block; }
+.result-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 7px 0; border-bottom: 0.5px solid #21262d; font-size: 13px; gap: 12px; }
+.result-row:last-child { border-bottom: none; padding-bottom: 0; }
+.result-label { color: #8b949e; flex-shrink: 0; }
+.result-value { color: #e6edf3; text-align: right; line-height: 1.4; }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+.badge-negative { background: #3d1515; color: #f85149; }
+.badge-positive { background: #0d2b1a; color: #3fb950; }
+.badge-neutral { background: #1c2128; color: #8b949e; }
+.ai-box { margin-top: 8px; background: #0d2235; border-left: 3px solid #1d6fa5; border-radius: 0 6px 6px 0; padding: 10px 14px; font-size: 13px; color: #b3d0ec; line-height: 1.7; }
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.stat { background: #0d1117; border: 0.5px solid #21262d; border-radius: 8px; padding: 12px; text-align: center; }
+.stat-val { font-size: 20px; font-weight: 500; color: #e6edf3; word-break: break-all; }
+.stat-label { font-size: 11px; color: #8b949e; margin-top: 3px; }
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #30363d; border-top-color: #58a6ff; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.preview-img { width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; display: none; border: 0.5px solid #21262d; }
+.tag { display: inline-block; background: #1c2a3a; color: #79c0ff; font-size: 11px; padding: 3px 9px; border-radius: 20px; margin: 2px; }
+.tags-container { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 4px; }
+.live-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.live-btn { padding: 12px; background: #21262d; border: 0.5px solid #30363d; border-radius: 8px; color: #c9d1d9; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.15s; text-align: center; }
+.live-btn:hover { background: #1d6fa5; color: #fff; border-color: #1d6fa5; }
+.footer { margin-top: 2rem; padding-top: 1rem; border-top: 0.5px solid #21262d; text-align: center; font-size: 12px; color: #484f58; }
+.footer a { color: #8b949e; text-decoration: none; }
+.footer a:hover { color: #58a6ff; }
+</style>
+</head>
+<body>
+<div class="dash">
+  <div class="header">
+    <div class="header-icon"><i class="ti ti-leaf" style="color:#fff;font-size:20px" aria-hidden="true"></i></div>
+    <div>
+      <h1>EcoSense AI</h1>
+      <p>Análisis inteligente de calidad del aire — Ciudad de México</p>
+    </div>
+  </div>
+  <div class="tabs" role="tablist">
+    <button class="tab active" role="tab" onclick="switchTab('report', this)"><i class="ti ti-message-circle" aria-hidden="true"></i> Reporte</button>
+    <button class="tab" role="tab" onclick="switchTab('translate', this)"><i class="ti ti-language" aria-hidden="true"></i> Traducir</button>
+    <button class="tab" role="tab" onclick="switchTab('image', this)"><i class="ti ti-photo" aria-hidden="true"></i> Imagen</button>
+    <button class="tab" role="tab" onclick="switchTab('live', this)"><i class="ti ti-chart-line" aria-hidden="true"></i> En vivo</button>
+  </div>
+  <div id="panel-report" class="panel active" role="tabpanel">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-message-2" aria-hidden="true"></i> Reporta la calidad del aire en tu zona</div>
+      <div class="input-group">
+        <label for="report-text">¿Cómo está el aire hoy? Escribe en cualquier idioma</label>
+        <textarea id="report-text" placeholder="Ej: The air smells terrible today in Iztapalapa..."></textarea>
+      </div>
+      <button class="btn" id="btn-report" onclick="analyzeReport()"><i class="ti ti-send" aria-hidden="true"></i> Analizar reporte</button>
+      <div id="result-report" class="result">
+        <div class="result-row"><span class="result-label">Idioma detectado</span><span class="result-value" id="r-lang">—</span></div>
+        <div class="result-row"><span class="result-label">Traducción al español</span><span class="result-value" id="r-translation">—</span></div>
+        <div class="result-row"><span class="result-label">Sentimiento</span><span class="result-value" id="r-sentiment">—</span></div>
+        <div class="result-row"><span class="result-label">Confianza</span><span class="result-value" id="r-confidence">—</span></div>
+      </div>
+    </div>
+  </div>
+  <div id="panel-translate" class="panel" role="tabpanel">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-language" aria-hidden="true"></i> Traductor ambiental</div>
+      <div class="input-group">
+        <label for="translate-text">Texto a traducir</label>
+        <textarea id="translate-text" placeholder="Escribe aquí en cualquier idioma..."></textarea>
+      </div>
+      <div class="input-group">
+        <label for="translate-target">Idioma destino</label>
+        <select id="translate-target">
+          <option value="es">Español</option>
+          <option value="en">Inglés</option>
+          <option value="fr">Francés</option>
+          <option value="de">Alemán</option>
+          <option value="pt">Portugués</option>
+          <option value="ja">Japonés</option>
+          <option value="zh-Hans">Chino simplificado</option>
+          <option value="ar">Árabe</option>
+        </select>
+      </div>
+      <button class="btn" id="btn-translate" onclick="translateText()"><i class="ti ti-arrow-right" aria-hidden="true"></i> Traducir</button>
+      <div id="result-translate" class="result">
+        <div class="result-row"><span class="result-label">Idioma original</span><span class="result-value" id="t-lang">—</span></div>
+        <div class="result-row"><span class="result-label">Traducción</span><span class="result-value" id="t-result">—</span></div>
+      </div>
+    </div>
+  </div>
+  <div id="panel-image" class="panel" role="tabpanel">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-photo-scan" aria-hidden="true"></i> Analiza una foto del cielo o del ambiente</div>
+      <img id="img-preview" class="preview-img" alt="Vista previa de la imagen a analizar" />
+      <div class="input-group">
+        <label for="image-url">URL de la imagen (debe ser pública y directa a un .jpg o .png)</label>
+        <input type="url" id="image-url" placeholder="https://ejemplo.com/foto-cielo.jpg" />
+      </div>
+      <button class="btn" id="btn-image" onclick="analyzeImage()"><i class="ti ti-eye" aria-hidden="true"></i> Analizar imagen</button>
+      <div id="result-image" class="result">
+        <div class="result-row"><span class="result-label">Descripción IA</span><span class="result-value" id="i-caption">—</span></div>
+        <div class="result-row"><span class="result-label">Confianza</span><span class="result-value" id="i-confidence">—</span></div>
+        <div class="result-row" style="flex-direction:column;align-items:flex-start;gap:8px"><span class="result-label">Etiquetas detectadas</span><div class="tags-container" id="i-tags"></div></div>
+      </div>
+    </div>
+  </div>
+  <div id="panel-live" class="panel" role="tabpanel">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-chart-line" aria-hidden="true"></i> Datos en tiempo real — estaciones de monitoreo CDMX</div>
+      <div class="live-grid">
+        <button class="live-btn" onclick="getLive('pm25')"><i class="ti ti-droplet" aria-hidden="true"></i><br/>PM2.5</button>
+        <button class="live-btn" onclick="getLive('o3')"><i class="ti ti-sun" aria-hidden="true"></i><br/>Ozono (O3)</button>
+        <button class="live-btn" onclick="getLive('no2')"><i class="ti ti-cloud" aria-hidden="true"></i><br/>NO2</button>
+        <button class="live-btn" onclick="getLive('co')"><i class="ti ti-wind" aria-hidden="true"></i><br/>CO</button>
+      </div>
+      <div id="result-live" class="result">
+        <div class="stat-grid">
+          <div class="stat"><div class="stat-val" id="l-value">—</div><div class="stat-label" id="l-unit">valor</div></div>
+          <div class="stat"><div class="stat-val" id="l-station" style="font-size:16px">—</div><div class="stat-label">Estación</div></div>
+          <div class="stat"><div class="stat-val" id="l-zone" style="font-size:14px">—</div><div class="stat-label">Zona</div></div>
+        </div>
+        <div class="result-row"><span class="result-label">Contaminante</span><span class="result-value" id="l-pollutant">—</span></div>
+        <div class="result-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+          <span class="result-label"><i class="ti ti-robot" aria-hidden="true"></i> Recomendación de salud</span>
+          <div class="ai-box" id="l-ai">Selecciona un contaminante para ver el análisis en tiempo real.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    Datos provistos por <a href="https://cdmx-air-quality-api-production.up.railway.app" target="_blank">CDMX Air Quality API</a>
+    · Análisis con Azure AI ·
+    <a href="https://ecosense-api.yellowbay-011c71f1.southcentralus.azurecontainerapps.io/docs" target="_blank">Documentación API</a>
+  </div>
+</div>
+<script>
+const API = 'https://ecosense-api.yellowbay-011c71f1.southcentralus.azurecontainerapps.io';
+const KEY = 'ecosense_dev_key_2026_cdmx_aire';
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+function setLoading(btnId, loading, orig) {
+  const btn = document.getElementById(btnId);
+  btn.disabled = loading;
+  btn.innerHTML = loading ? '<span class="spinner"></span> Analizando...' : orig;
+}
+function sentimentBadge(s) {
+  const map = { negative: ['badge-negative','Negativo'], positive: ['badge-positive','Positivo'], neutral: ['badge-neutral','Neutro'] };
+  const [cls, label] = map[s] || ['badge-neutral', s];
+  return '<span class="badge ' + cls + '">' + label + '</span>';
+}
+async function analyzeReport() {
+  const text = document.getElementById('report-text').value.trim();
+  if (!text) return;
+  const orig = '<i class="ti ti-send" aria-hidden="true"></i> Analizar reporte';
+  setLoading('btn-report', true, orig);
+  try {
+    const r = await fetch(API + '/report/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-Key': KEY }, body: JSON.stringify({ text }) });
+    const d = await r.json();
+    document.getElementById('r-lang').textContent = (d.detected_language || '—').toUpperCase();
+    document.getElementById('r-translation').textContent = d.translated_text || '—';
+    document.getElementById('r-sentiment').innerHTML = sentimentBadge(d.sentiment);
+    const conf = d.confidence_scores || {};
+    const top = Math.max(conf.positive || 0, conf.neutral || 0, conf.negative || 0);
+    document.getElementById('r-confidence').textContent = (top * 100).toFixed(0) + '%';
+    document.getElementById('result-report').classList.add('show');
+  } catch(e) { alert('Error al conectar con la API.'); }
+  setLoading('btn-report', false, orig);
+}
+async function translateText() {
+  const text = document.getElementById('translate-text').value.trim();
+  const target = document.getElementById('translate-target').value;
+  if (!text) return;
+  const orig = '<i class="ti ti-arrow-right" aria-hidden="true"></i> Traducir';
+  setLoading('btn-translate', true, orig);
+  try {
+    const r = await fetch(API + '/translate', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-Key': KEY }, body: JSON.stringify({ text, target_language: target }) });
+    const d = await r.json();
+    document.getElementById('t-lang').textContent = (d.detected_language || '—').toUpperCase();
+    document.getElementById('t-result').textContent = d.translated_text || '—';
+    document.getElementById('result-translate').classList.add('show');
+  } catch(e) { alert('Error al conectar con la API.'); }
+  setLoading('btn-translate', false, orig);
+}
+async function analyzeImage() {
+  const url = document.getElementById('image-url').value.trim();
+  if (!url) return;
+  const orig = '<i class="ti ti-eye" aria-hidden="true"></i> Analizar imagen';
+  setLoading('btn-image', true, orig);
+  try {
+    const r = await fetch(API + '/analyze/image', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-Key': KEY }, body: JSON.stringify({ image_url: url }) });
+    const d = await r.json();
+    if (d.detail) throw new Error(d.detail);
+    document.getElementById('i-caption').textContent = d.caption || '—';
+    document.getElementById('i-confidence').textContent = ((d.caption_confidence || 0) * 100).toFixed(0) + '%';
+    document.getElementById('i-tags').innerHTML = (d.tags || []).map(t => '<span class="tag">' + t + '</span>').join('');
+    document.getElementById('result-image').classList.add('show');
+  } catch(e) { alert('Error al analizar la imagen. Verifica que la URL sea pública y directa a una imagen.'); }
+  setLoading('btn-image', false, orig);
+}
+async function getLive(pollutant) {
+  document.getElementById('result-live').classList.add('show');
+  document.getElementById('l-ai').textContent = 'Consultando datos reales de estaciones CDMX...';
+  document.getElementById('l-value').textContent = '...';
+  document.getElementById('l-station').textContent = '...';
+  document.getElementById('l-zone').textContent = '...';
+  document.getElementById('l-pollutant').textContent = pollutant.toUpperCase();
+  try {
+    const r = await fetch(API + '/analyze/live-air-quality/' + pollutant, { headers: { 'X-API-Key': KEY } });
+    const d = await r.json();
+    if (d.detail) throw new Error(d.detail);
+    document.getElementById('l-value').textContent = d.value;
+    document.getElementById('l-unit').textContent = d.unit || '';
+    document.getElementById('l-station').textContent = d.station || '—';
+    document.getElementById('l-zone').textContent = d.zone || '—';
+    document.getElementById('l-pollutant').textContent = (d.pollutant || pollutant).toUpperCase();
+    document.getElementById('l-ai').textContent = d.ai_analysis || 'Sin análisis disponible.';
+  } catch(e) {
+    document.getElementById('l-value').textContent = '—';
+    document.getElementById('l-ai').textContent = 'Error al obtener datos. Intenta de nuevo.';
+  }
+}
+document.getElementById('image-url').addEventListener('input', function() {
+  const preview = document.getElementById('img-preview');
+  if (this.value.trim()) { preview.src = this.value.trim(); preview.style.display = 'block'; }
+  else preview.style.display = 'none';
+});
+</script>
+</body>
+</html>
